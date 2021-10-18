@@ -134,6 +134,7 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
 
         if (Build.VERSION.SDK_INT < 23)
             mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
+
         else if (Build.VERSION.SDK_INT >= 23) {
 
             if (ContextCompat.checkSelfPermission(passengerActivity.this,

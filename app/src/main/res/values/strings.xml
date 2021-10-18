@@ -9,4 +9,5 @@
     <string name="title_activity_passenger">Passenger</string>
     <string name="title_activity_view_locations_map">Map</string>
     <string name="title_activity_google_map">google_map</string>
+    <string name="title_activity_acitivty_view_location">acitivty_View_location</string>
 </resources>
