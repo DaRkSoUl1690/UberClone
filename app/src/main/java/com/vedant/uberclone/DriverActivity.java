@@ -34,7 +34,8 @@ import com.parse.SaveCallback;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DriverActivity extends AppCompatActivity implements View.OnClickListener {
+public class DriverActivity extends AppCompatActivity  implements View.OnClickListener,
+        AdapterView.OnItemClickListener {
     private Button btnGetRequests;
     private LocationManager locationManager;
     private LocationListener locationListener;
@@ -59,11 +60,11 @@ public class DriverActivity extends AppCompatActivity implements View.OnClickLis
         passengersLatitudes = new ArrayList<>();
         passengersLongitudes = new ArrayList<>();
         requestcarUsernames = new ArrayList<>();
-        adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, nearByDriveRequests);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, nearByDriveRequests);
 
         listView.setAdapter(adapter);
 
-        nearByDriveRequests.clear();
+      nearByDriveRequests.clear();
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
@@ -73,10 +74,7 @@ public class DriverActivity extends AppCompatActivity implements View.OnClickLis
             initializeLocationListener();
 
         }
-
-
-
-
+    listView.setOnItemClickListener(this);
     }
 
     @Override
@@ -114,8 +112,9 @@ public class DriverActivity extends AppCompatActivity implements View.OnClickLis
         if (Build.VERSION.SDK_INT < 23) {
 
             Location currentDriverLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
             updateRequestsListView(currentDriverLocation);
+
+
         } else if (Build.VERSION.SDK_INT >= 23) {
 
             if (ContextCompat.checkSelfPermission(DriverActivity.this,
@@ -270,4 +269,28 @@ public class DriverActivity extends AppCompatActivity implements View.OnClickLis
 
     }
 
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view,
+                            int position, long id) {
+
+          Toast.makeText(this, "Clicked", Toast.LENGTH_LONG).show();
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+            Location cdLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+            if (cdLocation != null) {
+                Intent intent = new Intent(this, acitivty_View_location.class);
+                intent.putExtra("dLatitude", cdLocation.getLatitude());
+                intent.putExtra("dLongitude", cdLocation.getLongitude());
+                intent.putExtra("pLatitude", passengersLatitudes.get(position));
+                intent.putExtra("pLongitude", passengersLongitudes.get(position));
+
+                intent.putExtra("rUsername", requestcarUsernames.get(position));
+                startActivity(intent);
+            }
+
+       }
+    }
 }
