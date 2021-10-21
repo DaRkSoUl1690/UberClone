@@ -147,7 +147,7 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
 
             ParseQuery<ParseObject> requestCarQuery = ParseQuery.getQuery("RequestCar");
             requestCarQuery.whereNear("passengerLocation", driverCurrentLocation);
-            requestCarQuery.whereDoesNotExist("driverOfMe");
+           //  requestCarQuery.whereDoesNotExist("driverOfMe");
             requestCarQuery.findInBackground(new FindCallback<ParseObject>() {
                 @Override
                 public void done(List<ParseObject> objects, ParseException e) {
@@ -172,7 +172,7 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
 
 
                                 ParseGeoPoint pLocation = (ParseGeoPoint) nearRequest.get("passengerLocation");
-                                Double milesDistanceToPassenger = driverCurrentLocation.distanceInMilesTo(pLocation);
+                                double milesDistanceToPassenger = driverCurrentLocation.distanceInMilesTo(pLocation);
 
                                 // 5.87594834787398943 * 10
 
