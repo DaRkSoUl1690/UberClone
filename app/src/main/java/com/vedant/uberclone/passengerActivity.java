@@ -1,12 +1,13 @@
 package com.vedant.uberclone;
 
 import androidx.annotation.NonNull;
+
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
-import android.content.Intent;
+
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -17,12 +18,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.parse.DeleteCallback;
 import com.parse.FindCallback;
@@ -35,7 +39,10 @@ import com.parse.ParseUser;
 import com.parse.SaveCallback;
 import com.vedant.uberclone.databinding.ActivityPassengerBinding;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class passengerActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
 
@@ -47,7 +54,8 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
     private Button btnRequestCar;
     private Button btnBeep;
     private boolean isUberCancelled = true;
-    int backButtonCount=0;
+    int backButtonCount = 0;
+    private Timer t;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +67,13 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
         btnRequestCar.setOnClickListener(this);
 
         btnBeep = findViewById(R.id.btnBeepBeep);
+        btnBeep.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
 
+           getDriverUpdates();
+            }
+        });
 
         ParseQuery<ParseObject> carRequestQuery = ParseQuery.getQuery("RequestCar");
         carRequestQuery.whereEqualTo("username", ParseUser.getCurrentUser().getUsername());
@@ -71,7 +85,7 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
                     isUberCancelled = false;
                     btnRequestCar.setText("Cancel your uber request!");
 
-                    // getDriverUpdates();
+                    getDriverUpdates();
                 }
             }
         });
@@ -99,26 +113,8 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
         assert mapFragment != null;
         mapFragment.getMapAsync(this);
     }
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        exitFromApp();
-    }
 
-    private void exitFromApp() {
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_HOME);
-        startActivity(intent);
-    }
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
+
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
@@ -126,35 +122,53 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
 
         mLocationListener = new LocationListener() {
             @Override
-            public void onLocationChanged(@NonNull Location location) {
+            public void onLocationChanged(Location location) {
+
                 updateCameraPassengerLocation(location);
+
+
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+
             }
         };
 
 
         if (Build.VERSION.SDK_INT < 23)
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
-
-        else if (Build.VERSION.SDK_INT >= 23) {
-
-            if (ContextCompat.checkSelfPermission(passengerActivity.this,
-                    Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-                ActivityCompat.requestPermissions(passengerActivity.this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1000);
-
-
-            } else {
-
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
+            } else if (Build.VERSION.SDK_INT >= 23) {
 
-                Location currentPassengerLocation =
-                        mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                updateCameraPassengerLocation(currentPassengerLocation);
+                if (ContextCompat.checkSelfPermission(passengerActivity.this,
+                        Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+                    ActivityCompat.requestPermissions(passengerActivity.this,
+                            new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1000);
 
 
+                } else {
+
+                    mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
+
+                    Location currentPassengerLocation =
+                            mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    updateCameraPassengerLocation(currentPassengerLocation);
+
+
+                }
             }
-        }
 
     }
 
@@ -185,18 +199,18 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
             mMap.clear();
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(passengerLocation, 15));
 
-            mMap.addMarker(new MarkerOptions().position(passengerLocation).title("You are here!!!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
+            mMap.addMarker(new MarkerOptions().position(passengerLocation).title("You are here!!!").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
         }
     }
 
     @Override
     public void onClick(View view) {
+
         if (isUberCancelled) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
                 mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
-                Location passengerCurrentLocation =
-                        mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                Location passengerCurrentLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
                 if (passengerCurrentLocation != null) {
 
@@ -206,20 +220,17 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
                     ParseGeoPoint userLocation = new ParseGeoPoint(passengerCurrentLocation.getLatitude(), passengerCurrentLocation.getLongitude());
                     requestCar.put("passengerLocation", userLocation);
 
-                    requestCar.saveInBackground(new SaveCallback() {
-                        @Override
-                        public void done(ParseException e) {
+                    requestCar.saveInBackground(e -> {
 
-                            if (e == null) {
+                        if (e == null) {
 
-                                Toast.makeText(passengerActivity.this, "A car request is sent",
-                                        Toast.LENGTH_SHORT).show();
+                            Toast.makeText(passengerActivity.this, "A car request is sent",
+                                    Toast.LENGTH_SHORT).show();
 
-                                btnRequestCar.setText("Cancel your uber order");
-                                isUberCancelled = false;
+                            btnRequestCar.setText("Cancel your uber order");
+                            isUberCancelled = false;
 
 
-                            }
                         }
                     });
 
@@ -245,14 +256,10 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
 
                         for (ParseObject uberRequest : requestList) {
 
-                            uberRequest.deleteInBackground(new DeleteCallback() {
-                                @Override
-                                public void done(ParseException e) {
+                            uberRequest.deleteInBackground(e1 -> {
 
-                                    if (e == null) {
-                                        Toast.makeText(passengerActivity.this, "Request/s " +
-                                                "deleted", Toast.LENGTH_SHORT).show();
-                                    }
+                                if (e1 == null) {
+                                    Toast.makeText(passengerActivity.this, "Request/s deleted", Toast.LENGTH_SHORT).show();
                                 }
                             });
                         }
@@ -262,8 +269,112 @@ public class passengerActivity extends FragmentActivity implements OnMapReadyCal
             });
 
         }
+
     }
 
 
+    private void getDriverUpdates() {
+
+        t = new Timer();
+        t.scheduleAtFixedRate(new TimerTask() {
+
+            @Override
+            public void run() {
+                ParseQuery<ParseObject> uberRequestQuery = ParseQuery.getQuery("RequestCar");
+                uberRequestQuery.whereEqualTo("username",
+                        ParseUser.getCurrentUser().getUsername());
+                uberRequestQuery.whereEqualTo("requestAccepted", true);
+                uberRequestQuery.whereExists("driverOfMe");
+
+                uberRequestQuery.findInBackground((objects, e) -> {
+
+                    if (objects.size() > 0 && e == null) {
+
+                        isCarReady = true;
+                        for (final ParseObject requestObject : objects) {
+
+                            ParseQuery<ParseUser> driverQuery = ParseUser.getQuery();
+                            driverQuery.whereEqualTo("username", requestObject.getString("driverOfMe"));
+                            driverQuery.findInBackground((drivers, e1) -> {
+                                if (drivers.size() > 0 && e1 == null) {
+
+                                    for (ParseUser driverOfRequest : drivers) {
+
+                                        ParseGeoPoint driverOfRequestLocation = driverOfRequest.getParseGeoPoint("driverLocation");
+                                        if (ContextCompat.checkSelfPermission(passengerActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                                            Location passengerLocation =
+                                                    mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+                                            ParseGeoPoint pLocationAsParseGeoPoint = new ParseGeoPoint(passengerLocation.getLatitude(), passengerLocation.getLongitude());
+
+                                            assert driverOfRequestLocation != null;
+                                            double milesDistance = driverOfRequestLocation.distanceInMilesTo(pLocationAsParseGeoPoint);
+
+                                            if (milesDistance < 0.3) {
+
+
+                                                requestObject.deleteInBackground(e11 -> {
+                                                    if (e11 == null) {
+
+                                                        Toast.makeText(passengerActivity.this, "Your Uber is ready!", Toast.LENGTH_LONG).show();
+                                                        isCarReady = false;
+                                                        isUberCancelled = true;
+                                                        btnRequestCar.setText("You can order a new uber now!");
+                                                    }
+                                                });
+
+                                            } else {
+
+                                                float roundedDistance = Math.round(milesDistance * 10) / 10;
+                                                Toast.makeText(passengerActivity.this,
+                                                        requestObject.getString("driverOfMe") + " is " + roundedDistance + " miles away from you!- Please wait!!!", Toast.LENGTH_LONG).show();
+
+
+                                                LatLng dLocation = new LatLng(driverOfRequestLocation.getLatitude(),
+                                                        driverOfRequestLocation.getLongitude());
+
+
+                                                LatLng pLocation = new LatLng(pLocationAsParseGeoPoint.getLatitude(), pLocationAsParseGeoPoint.getLongitude());
+
+                                                LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                                                Marker driverMarker = mMap.addMarker(new MarkerOptions().position(dLocation).title("Driver Location"));
+                                                Marker passengerMarker = mMap.addMarker(new MarkerOptions().position(pLocation));
+
+                                                ArrayList<Marker> myMarkers = new ArrayList<>();
+                                                myMarkers.add(driverMarker);
+                                                myMarkers.add(passengerMarker);
+
+                                                for (Marker marker : myMarkers) {
+
+                                                    builder.include(marker.getPosition());
+
+                                                }
+
+                                                LatLngBounds bounds = builder.build();
+
+                                                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 80);
+                                                mMap.animateCamera(cameraUpdate);
+                                            }
+
+                                        }
+
+                                    }
+
+                                }
+                            });
+
+
+                        }
+                    } else {
+                        isCarReady = false;
+                    }
+                });
+
+            }
+
+        }, 0, 3000);
+
+
+    }
 
 }

@@ -58,6 +58,9 @@ public class acitivty_View_location extends FragmentActivity implements OnMapRea
                     public void done(List<ParseObject> objects, ParseException e) {
                         if (objects.size() > 0 && e == null) {
                             for (ParseObject uberRequest : objects) {
+
+                                uberRequest.put("requestAccepted",true);
+
                                 uberRequest.put("driverOfMe", ParseUser.getCurrentUser().getUsername());
                                 uberRequest.saveInBackground(new SaveCallback() {
                                     @Override

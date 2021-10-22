@@ -34,7 +34,7 @@ import com.parse.SaveCallback;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DriverActivity extends AppCompatActivity  implements View.OnClickListener,
+public class DriverActivity extends AppCompatActivity implements View.OnClickListener,
         AdapterView.OnItemClickListener {
     private Button btnGetRequests;
     private LocationManager locationManager;
@@ -64,7 +64,7 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
 
         listView.setAdapter(adapter);
 
-      nearByDriveRequests.clear();
+        nearByDriveRequests.clear();
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
@@ -74,7 +74,7 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
             initializeLocationListener();
 
         }
-    listView.setOnItemClickListener(this);
+        listView.setOnItemClickListener(this);
     }
 
     @Override
@@ -111,8 +111,12 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
 
         if (Build.VERSION.SDK_INT < 23) {
 
-            Location currentDriverLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            updateRequestsListView(currentDriverLocation);
+            if (ActivityCompat.checkSelfPermission(DriverActivity.this,
+                    Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(DriverActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Location currentDriverLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                updateRequestsListView(currentDriverLocation);
+
+            }
 
 
         } else if (Build.VERSION.SDK_INT >= 23) {
@@ -147,7 +151,7 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
 
             ParseQuery<ParseObject> requestCarQuery = ParseQuery.getQuery("RequestCar");
             requestCarQuery.whereNear("passengerLocation", driverCurrentLocation);
-           //  requestCarQuery.whereDoesNotExist("driverOfMe");
+         requestCarQuery.whereDoesNotExist("driverOfMe");
             requestCarQuery.findInBackground(new FindCallback<ParseObject>() {
                 @Override
                 public void done(List<ParseObject> objects, ParseException e) {
@@ -169,19 +173,21 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
                             }
 
                             for (ParseObject nearRequest : objects) {
-
-
                                 ParseGeoPoint pLocation = (ParseGeoPoint) nearRequest.get("passengerLocation");
-                                double milesDistanceToPassenger = driverCurrentLocation.distanceInMilesTo(pLocation);
+                                //Double milesDistanceToPassenger =
+                                   //     driverCurrentLocation.distanceInMilesTo(pLocation);
 
                                 // 5.87594834787398943 * 10
 
                                 //  58.246789 // Result
                                 // 58
-                                float roundedDistanceValue = Math.round(milesDistanceToPassenger * 10) / 10;
+//                                float roundedDistanceValue = Math.round(milesDistanceToPassenger * 10) / 10;
 
-                                nearByDriveRequests.add("There are " + roundedDistanceValue + " miles to " + nearRequest.get("username"));
+                                nearByDriveRequests.add("There are " + pLocation+" "+ driverCurrentLocation + " miles " +
+                                        "to" +
+                                        " " + nearRequest.get("username"));
 
+                                assert pLocation != null;
                                 passengersLatitudes.add(pLocation.getLatitude());
                                 passengersLongitudes.add(pLocation.getLongitude());
                                 requestcarUsernames.add(nearRequest.get("username") + "");
@@ -229,7 +235,10 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
             @Override
             public void onLocationChanged(Location location) {
 
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+                if (ActivityCompat.checkSelfPermission(DriverActivity.this,
+                        Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(DriverActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+                }
 
 
             }
@@ -274,7 +283,7 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
     public void onItemClick(AdapterView<?> parent, View view,
                             int position, long id) {
 
-          Toast.makeText(this, "Clicked", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Clicked", Toast.LENGTH_LONG).show();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
@@ -291,6 +300,6 @@ public class DriverActivity extends AppCompatActivity  implements View.OnClickLi
                 startActivity(intent);
             }
 
-       }
+        }
     }
 }
